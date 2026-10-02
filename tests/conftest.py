@@ -13,10 +13,12 @@ from sqlalchemy import Engine, create_engine, event  # noqa: E402
 from sqlalchemy.orm import Session, sessionmaker  # noqa: E402
 from sqlalchemy.pool import StaticPool  # noqa: E402
 
+from app.core.security import hash_password  # noqa: E402
 from app.db.session import get_db  # noqa: E402
 from app.main import app  # noqa: E402
-from app.models import Base  # noqa: E402
-from tests.utils import login, register  # noqa: E402
+from app.models import Base, User  # noqa: E402
+from app.models.enums import UserRole  # noqa: E402
+from tests.utils import DEFAULT_PASSWORD, login, register  # noqa: E402
 
 
 @pytest.fixture
@@ -63,3 +65,17 @@ def client(session_factory: sessionmaker[Session]) -> Generator[TestClient]:
 def user_tokens(client: TestClient) -> dict[str, str]:
     register(client)
     return login(client)
+
+
+@pytest.fixture
+def admin_tokens(client: TestClient, db_session: Session) -> dict[str, str]:
+    db_session.add(
+        User(
+            email="admin@example.com",
+            username="admin",
+            password_hash=hash_password(DEFAULT_PASSWORD),
+            role=UserRole.ADMIN,
+        )
+    )
+    db_session.commit()
+    return login(client, email="admin@example.com")
