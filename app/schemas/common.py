@@ -22,3 +22,10 @@ Username = Annotated[str, Field(pattern=r"^[A-Za-z0-9_]{3,50}$")]
 Password = Annotated[
     str, Field(min_length=8, max_length=72), AfterValidator(_check_password_strength)
 ]
+
+
+class Page[T](BaseModel):
+    items: list[T]
+    total: int
+    limit: int
+    offset: int

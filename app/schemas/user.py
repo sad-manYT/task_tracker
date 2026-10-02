@@ -26,3 +26,7 @@ class UserUpdate(StrictModel):
 class PasswordChange(StrictModel):
     current_password: str = Field(min_length=1, max_length=128)
     new_password: Password
+
+
+class RoleUpdate(StrictModel):
+    role: UserRole

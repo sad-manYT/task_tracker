@@ -40,6 +40,29 @@ alembic revision --autogenerate -m "описание изменений"
 alembic upgrade head
 ```
 
+## Создание администратора
+
+Роль администратора нельзя получить через API. Администратор создаётся командой:
+
+```bash
+# при запуске через Docker
+docker compose exec app python -m app.cli create-admin --email admin@example.com --username admin
+
+# при локальном запуске
+python -m app.cli create-admin --email admin@example.com --username admin
+```
+
+Если пользователь с таким email уже существует, ему будет назначена роль администратора.
+
+## Аутентификация
+
+1. Зарегистрироваться: `POST /api/v1/auth/register`.
+2. Войти: `POST /api/v1/auth/login`, в ответе будут `access_token` и `refresh_token`.
+3. Передавать access-токен в заголовке `Authorization: Bearer <токен>`.
+   В Swagger для этого есть кнопка **Authorize**.
+4. Access-токен действует 15 минут. Новую пару токенов можно получить через
+   `POST /api/v1/auth/refresh`.
+
 ## Структура проекта
 
 ```
