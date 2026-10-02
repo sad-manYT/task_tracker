@@ -6,10 +6,11 @@ from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import AuthenticationError
+from app.core.exceptions import AuthenticationError, PermissionDeniedError
 from app.core.security import decode_token
 from app.db.session import get_db
 from app.models import User
+from app.models.enums import UserRole
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -35,3 +36,12 @@ def get_current_user(
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+def require_admin(user: CurrentUser) -> User:
+    if user.role != UserRole.ADMIN:
+        raise PermissionDeniedError()
+    return user
+
+
+AdminUser = Annotated[User, Depends(require_admin)]
