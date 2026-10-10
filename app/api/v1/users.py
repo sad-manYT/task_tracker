@@ -1,8 +1,8 @@
 import uuid
-from typing import Annotated
 
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, status
 
+from app.api.v1.params import Limit, Offset
 from app.core.dependencies import AdminUser, CurrentUser, DbSession
 from app.models import User
 from app.schemas.common import Page
@@ -31,8 +31,8 @@ def change_my_password(data: PasswordChange, user: CurrentUser, db: DbSession) -
 def list_users(
     _: AdminUser,
     db: DbSession,
-    limit: Annotated[int, Query(ge=1, le=100)] = 20,
-    offset: Annotated[int, Query(ge=0, le=1_000_000)] = 0,
+    limit: Limit = 20,
+    offset: Offset = 0,
 ) -> Page[UserRead]:
     users, total = user_service.list_users(db, limit, offset)
     return Page[UserRead](
