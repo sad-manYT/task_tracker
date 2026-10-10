@@ -5,9 +5,17 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import BadRequestError, NotFoundError, PermissionDeniedError
 from app.models import Category, ProjectMember, Task, User
-from app.models.enums import ProjectRole, TaskPriority
+from app.models.enums import ProjectRole, TaskPriority, TaskStatus
 from app.schemas.task import SortOrder, TaskCreate, TaskQuery, TaskSortField, TaskUpdate
 from app.services.project_service import get_membership, get_project_for_user, has_role
+
+ALLOWED_TRANSITIONS: dict[TaskStatus, set[TaskStatus]] = {
+    TaskStatus.NEW: {TaskStatus.IN_PROGRESS, TaskStatus.CANCELLED},
+    TaskStatus.IN_PROGRESS: {TaskStatus.REVIEW, TaskStatus.CANCELLED},
+    TaskStatus.REVIEW: {TaskStatus.DONE, TaskStatus.IN_PROGRESS, TaskStatus.CANCELLED},
+    TaskStatus.DONE: set(),
+    TaskStatus.CANCELLED: set(),
+}
 
 PRIORITY_ORDER = case(
     {
@@ -25,6 +33,10 @@ SORT_COLUMNS = {
     TaskSortField.PRIORITY: PRIORITY_ORDER,
     TaskSortField.TITLE: Task.title,
 }
+
+
+def can_change_status(current: TaskStatus, new: TaskStatus) -> bool:
+    return new in ALLOWED_TRANSITIONS[current]
 
 
 def get_task_for_user(
@@ -110,3 +122,26 @@ def list_tasks(db: Session, user: User, query: TaskQuery) -> tuple[list[Task], i
         statement.order_by(ordering.nulls_last(), Task.id).limit(query.limit).offset(query.offset)
     )
     return list(db.scalars(statement)), total
+
+
+def change_status(db: Session, user: User, task_id: uuid.UUID, new_status: TaskStatus) -> Task:
+    task, role = get_task_for_user(db, task_id, user)
+    if not has_role(role, ProjectRole.EDITOR) and task.assignee_id != user.id:
+        raise PermissionDeniedError("Менять статус может редактор проекта или исполнитель задачи")
+    if not can_change_status(task.status, new_status):
+        raise BadRequestError(f"Недопустимый переход статуса: {task.status} → {new_status}")
+
+    task.status = new_status
+    db.commit()
+    db.refresh(task)
+    return task
+
+
+def assign_task(db: Session, user: User, task_id: uuid.UUID, assignee_id: uuid.UUID | None) -> Task:
+    task, _ = get_task_for_user(db, task_id, user, ProjectRole.EDITOR)
+    _check_assignee(db, task.project_id, assignee_id)
+
+    task.assignee_id = assignee_id
+    db.commit()
+    db.refresh(task)
+    return task

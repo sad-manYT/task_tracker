@@ -6,7 +6,14 @@ from fastapi import APIRouter, Query, status
 from app.core.dependencies import CurrentUser, DbSession
 from app.models import Task
 from app.schemas.common import Page
-from app.schemas.task import TaskCreate, TaskQuery, TaskRead, TaskUpdate
+from app.schemas.task import (
+    TaskAssigneeUpdate,
+    TaskCreate,
+    TaskQuery,
+    TaskRead,
+    TaskStatusUpdate,
+    TaskUpdate,
+)
 from app.services import task_service
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
@@ -44,3 +51,17 @@ def update_task(task_id: uuid.UUID, data: TaskUpdate, user: CurrentUser, db: DbS
 @router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_task(task_id: uuid.UUID, user: CurrentUser, db: DbSession) -> None:
     task_service.delete_task(db, user, task_id)
+
+
+@router.patch("/{task_id}/status", response_model=TaskRead)
+def change_task_status(
+    task_id: uuid.UUID, data: TaskStatusUpdate, user: CurrentUser, db: DbSession
+) -> Task:
+    return task_service.change_status(db, user, task_id, data.status)
+
+
+@router.patch("/{task_id}/assignee", response_model=TaskRead)
+def change_task_assignee(
+    task_id: uuid.UUID, data: TaskAssigneeUpdate, user: CurrentUser, db: DbSession
+) -> Task:
+    return task_service.assign_task(db, user, task_id, data.assignee_id)
