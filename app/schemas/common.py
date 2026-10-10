@@ -51,6 +51,12 @@ CategoryName = Annotated[
     AfterValidator(_reject_null_character),
 ]
 
+CommentBody = Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, min_length=1, max_length=2000),
+    AfterValidator(_reject_null_character),
+]
+
 TagName = Annotated[
     str,
     StringConstraints(
