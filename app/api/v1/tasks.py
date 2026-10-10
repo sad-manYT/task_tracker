@@ -1,13 +1,28 @@
 import uuid
+from typing import Annotated
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Query, status
 
 from app.core.dependencies import CurrentUser, DbSession
 from app.models import Task
-from app.schemas.task import TaskCreate, TaskRead, TaskUpdate
+from app.schemas.common import Page
+from app.schemas.task import TaskCreate, TaskQuery, TaskRead, TaskUpdate
 from app.services import task_service
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
+
+
+@router.get("")
+def list_tasks(
+    query: Annotated[TaskQuery, Query()], user: CurrentUser, db: DbSession
+) -> Page[TaskRead]:
+    tasks, total = task_service.list_tasks(db, user, query)
+    return Page[TaskRead](
+        items=[TaskRead.model_validate(task) for task in tasks],
+        total=total,
+        limit=query.limit,
+        offset=query.offset,
+    )
 
 
 @router.post("", response_model=TaskRead, status_code=status.HTTP_201_CREATED)
