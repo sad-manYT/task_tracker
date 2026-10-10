@@ -14,3 +14,7 @@ class TagRead(BaseModel):
 
     id: uuid.UUID
     name: str
+
+
+class TaskTagAdd(StrictModel):
+    tag_id: uuid.UUID
