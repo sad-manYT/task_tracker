@@ -28,3 +28,28 @@ def login(
 
 def auth_header(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
+
+
+def create_user(client: TestClient, name: str) -> dict[str, str]:
+    email = f"{name}@example.com"
+    response = register(client, email=email, username=name)
+    assert response.status_code == 201, response.text
+    return login(client, email=email)
+
+
+def create_project(client: TestClient, tokens: dict[str, str], title: str = "Проект") -> dict:
+    response = client.post(
+        f"{API}/projects", json={"title": title}, headers=auth_header(tokens["access_token"])
+    )
+    assert response.status_code == 201, response.text
+    return response.json()
+
+
+def add_member(
+    client: TestClient, owner_tokens: dict[str, str], project_id: str, username: str, role: str
+):
+    return client.post(
+        f"{API}/projects/{project_id}/members",
+        json={"username": username, "role": role},
+        headers=auth_header(owner_tokens["access_token"]),
+    )
