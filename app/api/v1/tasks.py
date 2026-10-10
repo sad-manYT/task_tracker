@@ -1,0 +1,67 @@
+import uuid
+from typing import Annotated
+
+from fastapi import APIRouter, Query, status
+
+from app.core.dependencies import CurrentUser, DbSession
+from app.models import Task
+from app.schemas.common import Page
+from app.schemas.task import (
+    TaskAssigneeUpdate,
+    TaskCreate,
+    TaskQuery,
+    TaskRead,
+    TaskStatusUpdate,
+    TaskUpdate,
+)
+from app.services import task_service
+
+router = APIRouter(prefix="/tasks", tags=["tasks"])
+
+
+@router.get("")
+def list_tasks(
+    query: Annotated[TaskQuery, Query()], user: CurrentUser, db: DbSession
+) -> Page[TaskRead]:
+    tasks, total = task_service.list_tasks(db, user, query)
+    return Page[TaskRead](
+        items=[TaskRead.model_validate(task) for task in tasks],
+        total=total,
+        limit=query.limit,
+        offset=query.offset,
+    )
+
+
+@router.post("", response_model=TaskRead, status_code=status.HTTP_201_CREATED)
+def create_task(data: TaskCreate, user: CurrentUser, db: DbSession) -> Task:
+    return task_service.create_task(db, user, data)
+
+
+@router.get("/{task_id}", response_model=TaskRead)
+def get_task(task_id: uuid.UUID, user: CurrentUser, db: DbSession) -> Task:
+    task, _ = task_service.get_task_for_user(db, task_id, user)
+    return task
+
+
+@router.patch("/{task_id}", response_model=TaskRead)
+def update_task(task_id: uuid.UUID, data: TaskUpdate, user: CurrentUser, db: DbSession) -> Task:
+    return task_service.update_task(db, user, task_id, data)
+
+
+@router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_task(task_id: uuid.UUID, user: CurrentUser, db: DbSession) -> None:
+    task_service.delete_task(db, user, task_id)
+
+
+@router.patch("/{task_id}/status", response_model=TaskRead)
+def change_task_status(
+    task_id: uuid.UUID, data: TaskStatusUpdate, user: CurrentUser, db: DbSession
+) -> Task:
+    return task_service.change_status(db, user, task_id, data.status)
+
+
+@router.patch("/{task_id}/assignee", response_model=TaskRead)
+def change_task_assignee(
+    task_id: uuid.UUID, data: TaskAssigneeUpdate, user: CurrentUser, db: DbSession
+) -> Task:
+    return task_service.assign_task(db, user, task_id, data.assignee_id)

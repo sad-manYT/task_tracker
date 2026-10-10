@@ -21,6 +21,10 @@ from app.models.enums import UserRole  # noqa: E402
 from tests.utils import DEFAULT_PASSWORD, login, register  # noqa: E402
 
 
+def _unicode_lower(value):
+    return value.lower() if isinstance(value, str) else value
+
+
 @pytest.fixture
 def engine() -> Generator[Engine]:
     test_engine = create_engine(
@@ -30,8 +34,9 @@ def engine() -> Generator[Engine]:
     )
 
     @event.listens_for(test_engine, "connect")
-    def enable_foreign_keys(dbapi_connection, _):
+    def configure_sqlite(dbapi_connection, _):
         dbapi_connection.execute("PRAGMA foreign_keys=ON")
+        dbapi_connection.create_function("lower", 1, _unicode_lower, deterministic=True)
 
     Base.metadata.create_all(test_engine)
     yield test_engine
