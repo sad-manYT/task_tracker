@@ -7,6 +7,7 @@ from pydantic import AfterValidator, AwareDatetime, BaseModel, ConfigDict, Field
 
 from app.models.enums import TaskPriority, TaskStatus
 from app.schemas.common import Description, SearchText, StrictModel, Title
+from app.schemas.tag import TagRead
 
 MIN_DEADLINE_YEAR = 2000
 MAX_DEADLINE_YEAR = 2100
@@ -73,6 +74,7 @@ class TaskRead(BaseModel):
     deadline: datetime | None
     created_at: datetime
     updated_at: datetime
+    tags: list[TagRead]
 
 
 class TaskSortField(enum.StrEnum):
@@ -92,6 +94,7 @@ class TaskQuery(StrictModel):
     status: TaskStatus | None = None
     priority: TaskPriority | None = None
     assignee_id: uuid.UUID | None = None
+    tag_id: uuid.UUID | None = None
     search: SearchText | None = None
     sort_by: TaskSortField = TaskSortField.CREATED_AT
     order: SortOrder = SortOrder.DESC

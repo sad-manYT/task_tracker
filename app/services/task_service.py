@@ -4,7 +4,7 @@ from sqlalchemy import and_, case, func, select
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import BadRequestError, NotFoundError, PermissionDeniedError
-from app.models import Category, ProjectMember, Task, User
+from app.models import Category, ProjectMember, Tag, Task, User
 from app.models.enums import ProjectRole, TaskPriority, TaskStatus
 from app.schemas.task import SortOrder, TaskCreate, TaskQuery, TaskSortField, TaskUpdate
 from app.services.project_service import get_membership, get_project_for_user, has_role
@@ -111,6 +111,8 @@ def list_tasks(db: Session, user: User, query: TaskQuery) -> tuple[list[Task], i
         statement = statement.where(Task.priority == query.priority)
     if query.assignee_id is not None:
         statement = statement.where(Task.assignee_id == query.assignee_id)
+    if query.tag_id is not None:
+        statement = statement.where(Task.tags.any(Tag.id == query.tag_id))
     if query.search is not None:
         statement = statement.where(Task.title.icontains(query.search, autoescape=True))
 

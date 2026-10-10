@@ -51,6 +51,13 @@ CategoryName = Annotated[
     AfterValidator(_reject_null_character),
 ]
 
+TagName = Annotated[
+    str,
+    StringConstraints(
+        strip_whitespace=True, to_lower=True, min_length=1, max_length=50, pattern=r"^[\w\- ]+$"
+    ),
+]
+
 
 class Page[T](BaseModel):
     items: list[T]
