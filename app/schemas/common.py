@@ -39,6 +39,12 @@ Description = Annotated[
     str, StringConstraints(max_length=5000), AfterValidator(_reject_null_character)
 ]
 
+SearchText = Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, min_length=1, max_length=100),
+    AfterValidator(_reject_null_character),
+]
+
 
 class Page[T](BaseModel):
     items: list[T]
