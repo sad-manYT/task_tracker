@@ -1,12 +1,18 @@
 import uuid
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import NotFoundError, PermissionDeniedError
-from app.models import Project, ProjectMember, User
+from app.core.exceptions import (
+    BadRequestError,
+    ConflictError,
+    NotFoundError,
+    PermissionDeniedError,
+)
+from app.models import Project, ProjectMember, Task, User
 from app.models.enums import ProjectRole
-from app.schemas.project import ProjectCreate, ProjectUpdate
+from app.schemas.project import MemberAdd, MemberRead, ProjectCreate, ProjectUpdate
 
 ROLE_LEVEL = {
     ProjectRole.VIEWER: 1,
@@ -78,4 +84,55 @@ def update_project(db: Session, project: Project, data: ProjectUpdate) -> Projec
 
 def delete_project(db: Session, project: Project) -> None:
     db.delete(project)
+    db.commit()
+
+
+def list_members(db: Session, project: Project) -> list[MemberRead]:
+    rows = db.execute(
+        select(ProjectMember.user_id, User.username, ProjectMember.role)
+        .join(User, User.id == ProjectMember.user_id)
+        .where(ProjectMember.project_id == project.id)
+        .order_by(User.username)
+    )
+    return [
+        MemberRead(user_id=user_id, username=username, role=role)
+        for user_id, username, role in rows
+    ]
+
+
+def add_member(db: Session, project: Project, data: MemberAdd) -> MemberRead:
+    user = db.scalar(select(User).where(User.username == data.username, User.is_active.is_(True)))
+    if user is None:
+        raise NotFoundError("Пользователь не найден")
+    if get_membership(db, project.id, user.id) is not None:
+        raise ConflictError("Пользователь уже участвует в проекте")
+
+    role = ProjectRole(data.role)
+    db.add(ProjectMember(project_id=project.id, user_id=user.id, role=role))
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise ConflictError("Пользователь уже участвует в проекте") from None
+    return MemberRead(user_id=user.id, username=user.username, role=role)
+
+
+def remove_member(
+    db: Session, project: Project, actor: User, actor_role: ProjectRole, user_id: uuid.UUID
+) -> None:
+    if actor_role != ProjectRole.OWNER and actor.id != user_id:
+        raise PermissionDeniedError("Удалять участников может только владелец проекта")
+
+    membership = get_membership(db, project.id, user_id)
+    if membership is None:
+        raise NotFoundError("Участник не найден")
+    if membership.role == ProjectRole.OWNER:
+        raise BadRequestError("Владельца нельзя удалить из проекта")
+
+    db.execute(
+        update(Task)
+        .where(Task.project_id == project.id, Task.assignee_id == user_id)
+        .values(assignee_id=None)
+    )
+    db.delete(membership)
     db.commit()

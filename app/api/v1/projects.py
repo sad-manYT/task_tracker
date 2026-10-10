@@ -6,7 +6,13 @@ from app.api.v1.params import Limit, Offset
 from app.core.dependencies import CurrentUser, DbSession
 from app.models.enums import ProjectRole
 from app.schemas.common import Page
-from app.schemas.project import ProjectCreate, ProjectRead, ProjectUpdate
+from app.schemas.project import (
+    MemberAdd,
+    MemberRead,
+    ProjectCreate,
+    ProjectRead,
+    ProjectUpdate,
+)
 from app.services import project_service
 
 router = APIRouter(prefix="/projects", tags=["projects"])
@@ -49,3 +55,25 @@ def update_project(
 def delete_project(project_id: uuid.UUID, user: CurrentUser, db: DbSession) -> None:
     project, _ = project_service.get_project_for_user(db, project_id, user, ProjectRole.OWNER)
     project_service.delete_project(db, project)
+
+
+@router.get("/{project_id}/members")
+def list_members(project_id: uuid.UUID, user: CurrentUser, db: DbSession) -> list[MemberRead]:
+    project, _ = project_service.get_project_for_user(db, project_id, user)
+    return project_service.list_members(db, project)
+
+
+@router.post("/{project_id}/members", status_code=status.HTTP_201_CREATED)
+def add_member(
+    project_id: uuid.UUID, data: MemberAdd, user: CurrentUser, db: DbSession
+) -> MemberRead:
+    project, _ = project_service.get_project_for_user(db, project_id, user, ProjectRole.OWNER)
+    return project_service.add_member(db, project, data)
+
+
+@router.delete("/{project_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def remove_member(
+    project_id: uuid.UUID, user_id: uuid.UUID, user: CurrentUser, db: DbSession
+) -> None:
+    project, role = project_service.get_project_for_user(db, project_id, user)
+    project_service.remove_member(db, project, user, role, user_id)

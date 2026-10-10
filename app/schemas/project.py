@@ -1,11 +1,12 @@
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, field_validator
 
 from app.models import Project
 from app.models.enums import ProjectRole
-from app.schemas.common import Description, StrictModel, Title
+from app.schemas.common import Description, StrictModel, Title, Username
 
 
 class ProjectCreate(StrictModel):
@@ -43,3 +44,14 @@ class ProjectRead(BaseModel):
             created_at=project.created_at,
             my_role=role,
         )
+
+
+class MemberAdd(StrictModel):
+    username: Username
+    role: Literal["editor", "viewer"] = "viewer"
+
+
+class MemberRead(BaseModel):
+    user_id: uuid.UUID
+    username: str
+    role: ProjectRole
