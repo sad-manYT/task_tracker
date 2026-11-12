@@ -17,4 +17,10 @@ jobs:
       - run: pip install -r requirements-dev.txt
       - run: ruff check .
       - run: ruff format --check .
-      - run: pytest --cov
+      - run: pytest tests/unit
+      - run: pytest tests/integration
+      - run: pytest --cov --cov-report=term --cov-report=xml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
