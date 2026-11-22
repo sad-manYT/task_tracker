@@ -7,8 +7,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+COPY requirements.lock .
+RUN pip install --require-hashes -r requirements.lock
 
 COPY . .
 
