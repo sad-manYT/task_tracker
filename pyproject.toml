@@ -23,6 +23,7 @@ addopts = "-ra"
 
 [tool.coverage.run]
 source = ["app"]
+relative_files = true
 
 [tool.coverage.report]
 fail_under = 90
