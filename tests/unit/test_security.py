@@ -28,7 +28,10 @@ def test_wrong_password_is_rejected():
 
 
 def test_same_password_gives_different_hashes():
-    assert hash_password("Secret123") != hash_password("Secret123")
+    first_hash = hash_password("Secret123")
+    second_hash = hash_password("Secret123")
+
+    assert first_hash != second_hash
 
 
 def test_too_long_password_is_rejected_without_error():
@@ -92,5 +95,8 @@ def test_unsigned_token_is_rejected():
 
 
 def test_token_hash_is_stable():
-    assert hash_token("abc") == hash_token("abc")
-    assert len(hash_token("abc")) == 64
+    first_hash = hash_token("abc")
+    second_hash = hash_token("abc")
+
+    assert first_hash == second_hash
+    assert len(first_hash) == 64
