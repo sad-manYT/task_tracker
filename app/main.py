@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse
 from app.api.v1.router import api_router
 from app.core.config import get_settings
 from app.core.exceptions import AppError, AuthenticationError
+from app.core.middleware import SecurityHeadersMiddleware
 
 settings = get_settings()
 
@@ -12,6 +13,7 @@ app = FastAPI(
     version="0.1.0",
     debug=settings.debug,
 )
+app.add_middleware(SecurityHeadersMiddleware)
 
 
 @app.exception_handler(AppError)
