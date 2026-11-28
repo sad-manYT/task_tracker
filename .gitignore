@@ -15,9 +15,14 @@ coverage.xml
 htmlcov/
 .ruff_cache/
 .scannerwork/
+zap-work/
 
 # Локальные базы и IDE
 *.db
 *.sqlite3
 .idea/
 .vscode/
+
+#выводы статического тестирования
+hotspots.json
+issues.json
